@@ -1,5 +1,5 @@
 var net = require('net');
-var MODE = 'servo';
+var MODE = 'ABCDEF';
 var HOST = 'localhost';
 var PORT = 12345;
 
@@ -7,6 +7,7 @@ global.sock = null;
 
 function connect() {
     global.sock = new net.Socket();
+    global.sock.setNoDelay();
     global.sock.connect(PORT, HOST, function() {
         console.log('CONNECTED TO: ' + HOST + ':' + PORT);
         global.sock.write(MODE);
@@ -18,8 +19,8 @@ function connect() {
     });
 
     global.sock.on('data', function(data) {
-        var val = (''+data).charCodeAt(0);
-        console.log('EVENT data: ' + val);
+        var val = data[data.length - 1];       // 文字から文字コードに変換
+        console.log('EVENT data: ' + val + '(' + data.length + ')');
     });
 
     global.sock.on('end', function() {
@@ -50,7 +51,9 @@ function keepalive() {
     if (null == global.sock) {
         connect();
     }
-    d = String.fromCharCode(200);      // コントロールコードは180以上
+    //d = String.fromCharCode(200);      // コントロールコードは180以上
+    d = new Buffer(1);
+    d[0] = 200;
     console.log('send:' + d);
     global.sock.write(d);
     setTimeout(keepalive, 5000);
@@ -62,7 +65,9 @@ function senddata() {
     }
     //var rand = Math.floor( Math.random() * 180 )
     var rand = Math.floor( Math.random() * 256 );
-    d = String.fromCharCode(rand);      // 1バイトの文字列（コード）にする
+    //d = String.fromCharCode(rand);      // 1バイトの文字列（コード）にする
+    d = new Buffer(1);
+    d[0] = rand;
     //console.log('send:' + d);
     console.log('send:' + rand);
     global.sock.write(d);

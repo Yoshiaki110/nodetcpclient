@@ -1,7 +1,14 @@
+/*
+フォーマット
+0xFF, id, val(0-180)
+*/
 var net = require('net');
-var MODE = 'ABCDEF';
+//var MODE = 'ABCDEF';
 var HOST = 'localhost';
 var PORT = 12345;
+//var ID = 1;
+var ID = process.argv[2] || 1;
+console.log('ID: ' + ID);
 
 global.sock = null;
 
@@ -10,17 +17,35 @@ function connect() {
     global.sock.setNoDelay();
     global.sock.connect(PORT, HOST, function() {
         console.log('CONNECTED TO: ' + HOST + ':' + PORT);
-        global.sock.write(MODE);
+//        global.sock.write(MODE);
     });
 
     global.sock.on('connect', function() {
         console.log('EVENT connect');
-        //global.sock.write(MODE);
     });
 
     global.sock.on('data', function(data) {
-        var val = data[data.length - 1];       // 文字から文字コードに変換
-        console.log('EVENT data: ' + val + '(' + data.length + ')');
+        if (data.length >= 3) {    // ３バイト以上のデータのみ使用
+            var p = -1;
+            for (var i = data.length - 2; i--; ) {
+//                console.log(data[i]);
+                if (data[i] == 255) {
+                    p = i;
+                }
+            }
+            if (p >= 0) {         // 正しいデータあり
+                console.log('receive id:' + data[p+1] + ' val:' + data[p+2] + ' len:' + data.length);
+//                d = new Buffer(3);
+//                d[0] = 255;
+//                d[1] = data[p+1];
+//                d[2] = data[p+2];
+//                global.sock.write(d);
+            } else {
+                console.log('receive not found separater. data len:' + data.length);
+            }
+        } else {
+            console.log('receive illegal data len:' + data.length);
+        }
     });
 
     global.sock.on('end', function() {
@@ -51,10 +76,11 @@ function keepalive() {
     if (null == global.sock) {
         connect();
     }
-    //d = String.fromCharCode(200);      // コントロールコードは180以上
-    d = new Buffer(1);
-    d[0] = 200;
-    console.log('send:' + d);
+    d = new Buffer(3);
+    d[0] = 255;
+    d[1] = ID;
+    d[2] = 200;
+    console.log('send keepalive:' + 200);
     global.sock.write(d);
     setTimeout(keepalive, 5000);
 }
@@ -66,8 +92,10 @@ function senddata() {
     //var rand = Math.floor( Math.random() * 180 )
     var rand = Math.floor( Math.random() * 256 );
     //d = String.fromCharCode(rand);      // 1バイトの文字列（コード）にする
-    d = new Buffer(1);
-    d[0] = rand;
+    d = new Buffer(3);
+    d[0] = 255;
+    d[1] = ID;
+    d[2] = rand;
     //console.log('send:' + d);
     console.log('send:' + rand);
     global.sock.write(d);

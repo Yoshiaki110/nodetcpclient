@@ -1,3 +1,7 @@
+/*
+フォーマット
+0xFF, id, val(0-180)
+*/
 var net = require('net');
 var HOST = 'localhost';
 var PORT = 12345;
@@ -30,20 +34,26 @@ server = net.createServer(function(sock) {
     });
 
     sock.on('data', function(data) {             // １バイトづつ来るとは限らない
-        console.log(data);
-        for (var i = data.length; i--; ) {
-            var val = data[i];       // 文字から文字コードに変換
-            console.log('EVENT data: ' + val);
-            if (val > 180) {
-                console.log('over');
-            } else {
-                console.log('under');
-                var val = parseInt(data, 10)
-                d = new Buffer(1);
-                d[0] = data[i];
-                write(sock, d);
-                break;             // 古いデータは捨てる
+        if (data.length >= 3) {    // ３バイト以上のデータのみ使用
+            var p = -1;
+            for (var i = data.length - 2; i--; ) {
+//                console.log(data[i]);
+                if (data[i] == 255) {
+                    p = i;
+                }
             }
+            if (p >= 0) {         // 正しいデータあり
+                console.log('id:' + data[p+1] + ' val:' + data[p+2] + ' len:' + data.length);
+                d = new Buffer(3);
+                d[0] = 255;
+                d[1] = data[p+1];
+                d[2] = data[p+2];
+                write(sock, d);
+            } else {
+                console.log('not found separater. data len:' + data.length);
+            }
+        } else {
+            console.log('illegal data len:' + data.length);
         }
     });
 
@@ -68,5 +78,6 @@ server = net.createServer(function(sock) {
         console.log('EVENT close:' + had_error);
     });
 })
-server.listen(12345, 'localhost');
+server.listen(PORT, HOST);
 console.log('Server listening on ' + HOST +':'+ PORT);
+

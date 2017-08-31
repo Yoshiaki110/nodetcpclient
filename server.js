@@ -10,7 +10,7 @@ global.socks = new Array();     // 接続しているソケット
 
 function write(sock, data) {
     for (var i = global.socks.length; i--; ) {
-        if (global.socks[i] != sock) {     // 自分以外に送信
+        if (global.socks[i] != sock) {     // 自分以外に送信、エコーバックは受信したクライアントが行う
             global.socks[i].write(data);
         }
     }

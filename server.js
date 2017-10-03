@@ -10,9 +10,9 @@ global.socks = new Array();     // 接続しているソケット
 
 function write(sock, data) {
     for (var i = global.socks.length; i--; ) {
-        if (global.socks[i] != sock) {     // 自分以外に送信、エコーバックは受信したクライアントが行う
+        //if (global.socks[i] != sock) {     // 自分以外に送信、エコーバックは受信したクライアントが行う
             global.socks[i].write(data);
-        }
+        //}
     }
 }
 
@@ -48,7 +48,11 @@ server = net.createServer(function(sock) {
                 d[0] = 255;
                 d[1] = data[p+1];
                 d[2] = data[p+2];
-                write(sock, d);
+                if (data[p+2] == 200) {    // キープアライブなら送信側のみに返答
+                    sock.write(d);
+                } else {                   // そうでない場合みんなに送信
+                    write(sock, d);
+                }
             } else {
                 console.log('not found separater. data len:' + data.length);
             }

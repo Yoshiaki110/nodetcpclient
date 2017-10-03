@@ -1,16 +1,20 @@
 /*
 フォーマット
-0xFF, id, val(0-180)
+１バイト目　0xFF（デリミタ）
+２バイト目　id（送信者ID）
+３バイト目　値(0-180)
+　　　　　　キープアライブ(200)
 */
 var net = require('net');
 var HOST = 'localhost';
 var PORT = 12345;
 var ID = process.argv[2] || 1;
-var SID = process.argv[3] || 2;
-console.log('myID: ' + ID + 'sendID: ' + SID);
+var RID = process.argv[3] || 2;
+console.log('myID: ' + ID + ' recvID: ' + RID);
 var MODE = process.argv[4] || 's';
 
 global.sock = null;
+global.watchdog = new Date();
 
 function connect() {
     global.sock = new net.Socket();
@@ -24,6 +28,8 @@ function connect() {
     });
 
     global.sock.on('data', function(data) {
+        global.watchdog = new Date();
+
         if (data.length >= 3) {    // ３バイト以上のデータのみ使用
             var p = -1;
             for (var i = data.length - 2; i--; ) {
@@ -33,15 +39,8 @@ function connect() {
                 }
             }
             if (p >= 0) {                      // 正しいデータあり
-                if (data[p+1] == ID) {         // 自分宛てのデータ
+                if (data[p+1] == RID) {        // 自分宛てのデータ
                     console.log('* receive id:' + data[p+1] + ' val:' + data[p+2] + ' len:' + data.length);
-                    d = new Buffer(3);         // エコーバック送信
-                    d[0] = 255;
-                    d[1] = data[p+1];
-                    d[2] = data[p+2];
-                    global.sock.write(d);
-                } else if (data[p+1] == SID) { // エコーバック受信
-                    console.log('e receive id:' + data[p+1] + ' val:' + data[p+2] + ' len:' + data.length);
                 } else {
                     console.log('  receive id:' + data[p+1] + ' val:' + data[p+2] + ' len:' + data.length);
                 }
@@ -78,16 +77,22 @@ function connect() {
 }
 
 function keepalive() {
+    d = new Date() - watchdog;
+    console.log('watchdog:' + d);
+    if (d > 5000) {
+        process.exit(1)
+    }
+
     if (null == global.sock) {
         connect();
     }
     d = new Buffer(3);
     d[0] = 255;
-    d[1] = SID;
+    d[1] = ID;
     d[2] = 200;
     console.log('send keepalive:' + 200);
     global.sock.write(d);
-    setTimeout(keepalive, 5000);
+    setTimeout(keepalive, 2000);
 }
 
 function senddata() {
@@ -99,7 +104,7 @@ function senddata() {
     //d = String.fromCharCode(rand);      // 1バイトの文字列（コード）にする
     d = new Buffer(3);
     d[0] = 255;
-    d[1] = SID;
+    d[1] = ID;
     d[2] = rand;
     //console.log('send:' + d);
     console.log('send:' + rand);
@@ -108,7 +113,9 @@ function senddata() {
 }
 
 connect();
-if (MODE != 'r') {
-    setTimeout(keepalive, 5000);
+
+if (MODE != 'r') {    // 受信テストでないなら送信する
+    global.watchdog = new Date();
+    setTimeout(keepalive, 2000);
     setTimeout(senddata, 1000);
 }

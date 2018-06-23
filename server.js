@@ -2,29 +2,10 @@
 フォーマット
 0xFF, id, val(0-180)
 */
-var setting = require('./setting.js');
+var config = require('./config.js');
 var net = require('net');
-var HOST = setting.HOST;
-var PORT = setting.PORT;
-
-function getIPAddresses() {
-    var ipAddresses = [];
-    var interfaces = require('os').networkInterfaces();
-    for (var devName in interfaces) {
-        var iface = interfaces[devName];
-        for (var i = 0; i < iface.length; i++) {
-            var alias = iface[i];
-            if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) {
-                ipAddresses.push(alias.address);
-            }
-        }
-    }
-    return ipAddresses;
-}
-var ipAddresses = getIPAddresses();
-console.log('ipAddresses:' + ipAddresses);
-
-HOST = getIPAddresses()[0];
+var HOST = config.HOST;     // 内部のIPアドレス（ipconfigの値）
+var PORT = config.PORT;     // 独自プロトコルのポート
 
 global.socks = new Array();     // 接続しているソケット
 

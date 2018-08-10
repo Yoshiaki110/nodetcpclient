@@ -5,10 +5,10 @@
 ３バイト目　値(0-180)
 　　　　　　キープアライブ(200)
 */
-var setting = require('./setting.js');
+var config = require('./config.js');
 var net = require('net');
-var HOST = setting.HOST;
-var PORT = setting.PORT;
+var HOST = config.HOST;
+var PORT = config.PORT;
 var ID = process.argv[2] || 1;
 var RID = process.argv[3] || 2;
 console.log('myID: ' + ID + ' recvID: ' + RID);
